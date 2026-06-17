@@ -17,6 +17,17 @@ class QueryResponse(BaseModel):
     sources: List[ProjectInfo]
     projects_searched: List[str]
 
+class CreateProjectRequest(BaseModel):
+    name: str
+    description: str
+
+class UpdateProjectRequest(BaseModel):
+    name: str
+    description: str
+
+class CreateProjectResponse(BaseModel):
+    project_id: str
+
 class HealthResponse(BaseModel):
     status: str
     total_documents: int

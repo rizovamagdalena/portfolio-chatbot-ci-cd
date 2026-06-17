@@ -1,5 +1,6 @@
 import { Bot, Trash2, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AddProject } from '@/components/AddProject';
 
 interface ChatHeaderProps {
   onClear: () => void;
@@ -30,15 +31,18 @@ export function ChatHeader({ onClear, onToggleSidebar }: ChatHeaderProps) {
           </div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClear}
-          className="text-muted-foreground hover:text-destructive"
-        >
-          <Trash2 className="w-4 h-4 mr-2" />
-          Clear Chat
-        </Button>
+        <div className="flex items-center gap-2">
+          <AddProject />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClear}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Clear Chat
+          </Button>
+        </div>
       </div>
     </header>
   );

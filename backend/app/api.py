@@ -1,7 +1,15 @@
 from fastapi import APIRouter, HTTPException
-from app.schemas import QueryRequest, QueryResponse, HealthResponse, ProjectInfo
+from app.schemas import (
+    QueryRequest,
+    QueryResponse,
+    HealthResponse,
+    ProjectInfo,
+    CreateProjectRequest,
+    CreateProjectResponse, UpdateProjectRequest,
+)
 from app.vector_store import VectorStore
 from app.llm import LLM
+from app.project_service import ProjectService
 import os
 from dotenv import load_dotenv
 
@@ -11,6 +19,7 @@ router = APIRouter()
 
 _vector_store = None
 _llm = None
+_project_service = None
 
 
 def get_vector_store():
@@ -28,21 +37,26 @@ def get_llm():
     return _llm
 
 
+def get_project_service():
+    global _project_service
+    if _project_service is None:
+        _project_service = ProjectService(get_vector_store())
+    return _project_service
+
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
     try:
         vector_store = get_vector_store()
         all_projects = vector_store.list_all_projects()
-        all_docs = vector_store.collection.get(include=["documents"])
-
+        collection = vector_store.vector_store._collection
+        total_docs = collection.count()
         return HealthResponse(
             status="healthy",
-            total_documents=len(all_docs['ids']),
+            total_documents=total_docs,
             available_projects=all_projects
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/query", response_model=QueryResponse)
 async def query_projects(request: QueryRequest):
@@ -53,11 +67,7 @@ async def query_projects(request: QueryRequest):
         vector_store = get_vector_store()
         llm = get_llm()
 
-        # Retrieve relevant documents
-        docs, metadatas, distances = vector_store.query(
-            request.query,
-            top_k=request.top_k
-        )
+        docs, metadatas, distances = vector_store.query(request.query, top_k=request.top_k)
 
         if not docs:
             return QueryResponse(
@@ -66,13 +76,9 @@ async def query_projects(request: QueryRequest):
                 projects_searched=[]
             )
 
-        # Get unique project names
         projects_searched = vector_store.get_relevant_projects(request.query, top_k=request.top_k)
-
-        # Generate answer
         answer = llm.ask_with_context(request.query, docs, metadatas=metadatas)
 
-        # Build sources list
         sources = []
         for doc, meta, dist in zip(docs, metadatas, distances):
             sources.append(ProjectInfo(
@@ -83,11 +89,7 @@ async def query_projects(request: QueryRequest):
                 content=doc
             ))
 
-        return QueryResponse(
-            answer=answer,
-            sources=sources,
-            projects_searched=projects_searched
-        )
+        return QueryResponse(answer=answer, sources=sources, projects_searched=projects_searched)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -96,8 +98,58 @@ async def query_projects(request: QueryRequest):
 @router.get("/projects")
 async def list_projects():
     try:
-        vector_store = get_vector_store()
-        projects = vector_store.list_all_projects()
+        project_service = get_project_service()
+        projects = await project_service.list_projects()
         return {"projects": projects}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/projects", response_model=CreateProjectResponse)
+async def add_project(request: CreateProjectRequest):
+    try:
+        if not request.name.strip():
+            raise HTTPException(status_code=400, detail="Name cannot be empty")
+        if not request.description.strip():
+            raise HTTPException(status_code=400, detail="Description cannot be empty")
+
+        project_service = get_project_service()
+        project_id = await project_service.add_project(request.name, request.description)
+        return CreateProjectResponse(project_id=project_id)
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/projects/{project_id}", response_model=CreateProjectResponse)
+async def update_project(project_id: str, request: UpdateProjectRequest):
+    try:
+        if not request.name.strip():
+            raise HTTPException(status_code=400, detail="Name cannot be empty")
+        if not request.description.strip():
+            raise HTTPException(status_code=400, detail="Description cannot be empty")
+
+        project_service = get_project_service()
+        updated_id = await project_service.update_project(project_id, request.name, request.description)
+        return CreateProjectResponse(project_id=updated_id)
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/projects/{project_id}")
+async def delete_project(project_id: str):
+    try:
+        project_service = get_project_service()
+        await project_service.delete_project(project_id)
+        return {"message": f"Project {project_id} deleted successfully"}
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

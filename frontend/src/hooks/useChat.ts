@@ -1,8 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Message, QueryResponse } from '@/types/chat';
 import { toast } from '@/hooks/use-toast';
-
-const API_URL = 'http://localhost:8000/api/query';
+import { queryProjects } from '@/lib/api';
 
 const generateId = () => Math.random().toString(36).substring(2, 15);
 
@@ -38,22 +37,12 @@ export function useChat() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query,
-          top_k: 3,
-        }),
+
+
+      const data = await queryProjects({
+        query,
+        top_k: 3,
       });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data: QueryResponse = await response.json();
 
       const assistantMessage: Message = {
         id: generateId(),

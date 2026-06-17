@@ -35,7 +35,7 @@ vector_store = Chroma(
     persist_directory=CHROMA_PERSIST_DIR
 )
 
-print(f"Using collection: projects_collection")
+# print(f"Using collection: projects_collection")
 
 # -----------------------------
 # Load projects.json file
@@ -43,7 +43,7 @@ print(f"Using collection: projects_collection")
 with open(PROJECTS_JSON_PATH, "r", encoding="utf-8") as f:
     projects = json.load(f)
 
-print(f"Loaded {len(projects)} projects from {PROJECTS_JSON_PATH}")
+# print(f"Loaded {len(projects)} projects from {PROJECTS_JSON_PATH}")
 
 # -----------------------------
 # Ingest
@@ -55,13 +55,13 @@ for project in projects:
     project_name = project["name"]
     chunks = project.get("chunks", [])
 
-    print(f"\n➡️ Processing project: {project_name} ({project_id}) with {len(chunks)} chunks")
+    # print(f"\n➡️ Processing project: {project_name} ({project_id}) with {len(chunks)} chunks")
 
     for idx, chunk in enumerate(chunks):
         text = chunk["text"]
         chunk_type = chunk.get("type", "General")
 
-        print(f"  - Preparing chunk {idx} [{chunk_type}]")
+        # print(f"  - Preparing chunk {idx} [{chunk_type}]")
 
         # Create LangChain Document
         doc = Document(
@@ -75,10 +75,10 @@ for project in projects:
         )
 
         all_documents.append(doc)
-        print(f"    ✅ Chunk {idx} prepared")
+        # print(f"    ✅ Chunk {idx} prepared")
 
 # Add all documents to vector store in batch
-print(f"\n📦 Adding {len(all_documents)} documents to vector store...")
+# print(f"\n📦 Adding {len(all_documents)} documents to vector store...")
 vector_store.add_documents(all_documents)
 
 # -----------------------------
