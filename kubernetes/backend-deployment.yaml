@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio-backend
+  namespace: portfolio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portfolio-backend
+  template:
+    metadata:
+      labels:
+        app: portfolio-backend
+    spec:
+      containers:
+        - name: backend
+          image: rizovamagdalena/portfolio-backend:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: portfolio-config
+            - secretRef:
+                name: portfolio-secret
+          volumeMounts:
+            - name: chroma-storage
+              mountPath: /app/data/chroma_db
+      volumes:
+        - name: chroma-storage
+          emptyDir: {}

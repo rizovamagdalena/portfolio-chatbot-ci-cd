@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: portfolio-mongo
+  namespace: portfolio
+spec:
+  selector:
+    matchLabels:
+      app: portfolio-mongo
+  serviceName: portfolio-mongo
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: portfolio-mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:7
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-storage
+              mountPath: /data/db
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

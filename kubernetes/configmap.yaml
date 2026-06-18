@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portfolio-config
+  namespace: portfolio
+data:
+  MONGODB_URI: "mongodb://portfolio-mongo:27017"
+  MONGODB_DB: "project_portfolio"
+  OPENAI_PROJECT_MODEL: "gpt-4o-mini"
+  OPENAI_PROJECT_MAX_TOKENS: "500"
