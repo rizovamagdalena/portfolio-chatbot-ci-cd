@@ -43,6 +43,19 @@ def get_project_service():
         _project_service = ProjectService(get_vector_store())
     return _project_service
 
+def classify_query(query: str, known_projects: dict) -> tuple:
+    query_lower = query.lower()
+    for project_id, project_name in known_projects.items():
+        # Check full name
+        if project_name.lower() in query_lower:
+            return "specific", project_id
+        # Check each word, stripping punctuation (catches "StyleCast" from "(StyleCast)")
+        for word in project_name.split():
+            clean_word = word.strip("()[].,!?").lower()
+            if len(clean_word) > 4 and clean_word in query_lower:
+                return "specific", project_id
+    return "general", None
+
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
     try:
@@ -69,6 +82,19 @@ async def query_projects(request: QueryRequest):
 
         docs, metadatas, distances = vector_store.query(request.query, top_k=request.top_k)
 
+        # Get known projects for query classification
+        known_projects = vector_store.list_all_projects()
+
+        # Classify the query
+        query_type, matched_project_id = classify_query(request.query, known_projects)
+
+        if query_type == "specific":
+            # Get ALL chunks for this specific project
+            docs, metadatas, distances = vector_store.query_by_project(matched_project_id)
+        else:
+            # General query — search all chunks, best match per project
+            docs, metadatas, distances = vector_store.query_general(request.query)
+
         if not docs:
             return QueryResponse(
                 answer="I don't have information about that in my project database.",
@@ -76,7 +102,7 @@ async def query_projects(request: QueryRequest):
                 projects_searched=[]
             )
 
-        projects_searched = vector_store.get_relevant_projects(request.query, top_k=request.top_k)
+        projects_searched = list(set(m["project_name"] for m in metadatas))
         answer = llm.ask_with_context(request.query, docs, metadatas=metadatas)
 
         sources = []
@@ -141,7 +167,6 @@ async def update_project(project_id: str, request: UpdateProjectRequest):
         raise HTTPException(status_code=404, detail=str(exc))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.delete("/projects/{project_id}")
 async def delete_project(project_id: str):

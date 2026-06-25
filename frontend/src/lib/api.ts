@@ -51,7 +51,7 @@ export const queryProjects = async (data: QueryRequest): Promise<QueryResponse> 
   return response.data;
 };
 
-export const getProjects = async (): Promise<Record<string, string>> => {
-  const response = await api.get<{ projects: Record<string, string> }>('/projects');
+export const getProjects = async (): Promise<any[]> => {
+  const response = await api.get<{ projects: any[] }>('/projects');
   return response.data.projects;
 };

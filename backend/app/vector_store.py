@@ -64,16 +64,46 @@ class VectorStore:
 
         return documents, metadatas, distances
 
-    def get_documents_only(self, query_text: str, top_k: int = 3):
-        docs, _, _ = self.query(query_text, top_k)
-        return docs
+    def query_by_project(self, project_id: str):
+        collection = self.vector_store._collection
+        results = collection.get(
+            where={"project_id": project_id},
+            include=["documents", "metadatas"]
+        )
+        docs = results["documents"]
+        metadatas = results["metadatas"]
+        distances = [0.01] * len(docs)
+        return docs, metadatas, distances
 
-    def get_relevant_projects(self, query_text: str, top_k: int = 3):
-        _, metadatas, _ = self.query(query_text, top_k)
-        project_names = set()
-        for metadata in metadatas:
-            project_names.add(metadata['project_name'])
-        return list(project_names)
+    def query_general(self, query_text: str, top_k: int = 50):
+        docs, metadatas, distances = self.query(query_text, top_k=top_k)
+
+        # Keep only the best (lowest distance) chunk per project
+        seen_projects = {}
+        for doc, meta, dist in zip(docs, metadatas, distances):
+            pid = meta["project_id"]
+            if pid not in seen_projects or dist < seen_projects[pid][2]:
+                seen_projects[pid] = (doc, meta, dist)
+
+        result = list(seen_projects.values())
+        result.sort(key=lambda x: x[2])
+
+        return (
+            [r[0] for r in result],
+            [r[1] for r in result],
+            [r[2] for r in result]
+        )
+
+    # def get_documents_only(self, query_text: str, top_k: int = 3):
+    #     docs, _, _ = self.query(query_text, top_k)
+    #     return docs
+    #
+    # def get_relevant_projects(self, query_text: str, top_k: int = 3):
+    #     _, metadatas, _ = self.query(query_text, top_k)
+    #    classify_query project_names = set()
+    #     for metadata in metadatas:
+    #         project_names.add(metadata['project_name'])
+    #     return list(project_names)
 
     def list_all_projects(self):
         try:

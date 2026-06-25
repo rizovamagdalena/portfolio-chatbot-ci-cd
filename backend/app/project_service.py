@@ -17,7 +17,7 @@ MONGO_DB = os.getenv("MONGODB_DB", "project_portfolio")
 OPENAI_MODEL = os.getenv("OPENAI_PROJECT_MODEL", "gpt-4o-mini")
 OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_PROJECT_MAX_TOKENS", "500"))
 
-PROJECT_CHUNK_PROMPT = """You are a software portfolio assistant.
+PROJECT_CHUNK_PROMPT = """You are a software portfolio assistant helping index a developer's projects.
 
 Given a project name and description, return exactly one JSON array containing five objects.
 Each object must contain the keys:
@@ -31,7 +31,13 @@ The objects must appear in this order:
 4. Functionality
 5. AI Usage
 
-Each text value should be a concise, useful summary for that topic.
+CRITICAL RULES:
+- Extract ONLY information explicitly stated in the description. Do NOT infer, assume, or add anything.
+- If the description does not mention something for a category, write exactly what is known or state "Not specified in the project description."
+- For "AI Usage": if the description says no AI is used, state that explicitly. Never assume AI is used unless clearly mentioned.
+- For "Tech Stack": list only technologies explicitly named. Do not add frameworks or tools not mentioned.
+- Keep each text value to 1-2 sentences maximum.
+- Do not embellish, expand, or improve the description — only extract and summarize what is written.
 
 Respond with valid JSON only. Do not include any extra explanation or markdown.
 
@@ -86,7 +92,7 @@ class ProjectService:
         response = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,
+            temperature=0.0,
             max_tokens=OPENAI_MAX_TOKENS,
         )
         return response.choices[0].message.content
