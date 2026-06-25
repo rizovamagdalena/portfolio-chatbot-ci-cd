@@ -20,7 +20,7 @@ services:
     build: ./frontend
     container_name: portfolio-frontend
     ports:
-      - "5173:5173"
+      - "8080:8080"
     depends_on:
       - backend
 

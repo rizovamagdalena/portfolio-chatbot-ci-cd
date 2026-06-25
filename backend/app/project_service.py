@@ -82,7 +82,8 @@ class ProjectService:
         return self._parse_chunks(raw_response)
 
     def _create_openai_completion(self, prompt: str) -> str:
-        response = openai.ChatCompletion.create(
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
