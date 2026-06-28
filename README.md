@@ -117,7 +117,7 @@ docker compose up --build
 ```
 
 4. Access the app:
-   - Frontend: http://localhost:5173
+   - Frontend: http://localhost:8080
    - Backend API docs: http://localhost:8000/docs
 
 ---
